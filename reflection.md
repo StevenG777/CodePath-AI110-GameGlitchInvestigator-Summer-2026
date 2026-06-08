@@ -91,13 +91,43 @@ code cleaner and the tests pass at the same time.
 
 ## 4. What did you learn about Streamlit and state?
 
-- How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
+I'd explain it like this: Streamlit doesn't update the page in little pieces the way
+a normal website does. Every single time you interact with the app — click a button,
+type in a box, move a slider — Streamlit throws away the screen and **re-runs your
+entire `app.py` from the top to the bottom**, like re-running a script. That's a
+"rerun." The catch is that any normal variable you create gets recreated from scratch
+on every rerun, which is exactly why the secret number kept "resetting" — a plain
+`secret = random.randint(...)` would roll a brand-new number on every click.
+`st.session_state` is the fix: it's a dictionary that **survives across reruns**, so
+values you stash there (the secret, the score, the attempt count) persist between
+clicks instead of being wiped. The pattern I learned is to initialize state once with
+an `if "key" not in st.session_state:` guard so it's set on the first run and then
+left alone, and to read/write it during later reruns. Working in `logic_utils.py`
+also made this clearer: the pure functions don't touch session state at all, which is
+exactly why they were easy to unit-test without launching Streamlit.
 
 ---
 
 ## 5. Looking ahead: your developer habits
 
-- What is one habit or strategy from this project that you want to reuse in future labs or projects?
-  - This could be a testing habit, a prompting strategy, or a way you used Git.
-- What is one thing you would do differently next time you work with AI on a coding task?
-- In one or two sentences, describe how this project changed the way you think about AI generated code.
+**A habit I want to reuse.** Separating *diagnosis* from *permission to edit*. For each
+bug I first made the AI confirm the location and explain the mechanism, and only then
+let it apply the change — and I paired that with writing a failing-then-passing test
+for the exact behavior. Pulling the logic into `logic_utils.py` so it was testable
+without Streamlit, then naming each test after the bug it guards (e.g.
+`test_high_low_hints_not_reversed`), is a workflow I want to keep: it means the tests
+double as documentation of what was broken. I also want to keep committing in small,
+labeled steps rather than one giant commit at the end.
+
+**One thing I'd do differently.** I'd write the regression test *before* accepting the
+fix, not after. A couple of times I confirmed a fix by playing the live app first and
+only added the automated test afterward; doing it test-first would have caught the
+`check_guess` return-type mismatch (tuple vs. string) immediately instead of after the
+refactor. I'd also slow down and read the full diff on every file the AI touched
+before approving, since it sometimes changed more than I expected.
+
+**How this changed my thinking about AI-generated code.** I now treat AI-generated code
+as a confident first draft, not a finished product — it produced plausible-looking
+code that was wrong in several places and even suggested a tempting-but-wrong shortcut
+(hardcoding `1–100`) that I had to reject. The real safeguard wasn't the AI; it was me
+understanding the mechanism and having tests that prove the behavior.

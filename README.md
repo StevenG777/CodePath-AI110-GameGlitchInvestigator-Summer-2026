@@ -25,19 +25,28 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📝 Document Your Experience
 
-- [ ] Describe the game's purpose.
-- [ ] Detail which bugs you found.
-- [ ] Explain what fixes you applied.
+- [x] **Game's purpose.** A single-player number-guessing game built with Streamlit. The app picks a secret number within a range that depends on the chosen difficulty (Easy 1–20, Normal 1–100, Hard 1–50), and the player has a limited number of attempts to find it. After each guess the game gives a "higher/lower" hint, validates the input, and updates a running score until the player wins or runs out of attempts.
+
+- [x] **Bugs I found.**
+  - **Bug 1 — Reversed hints.** `check_guess` had the high/low messages swapped, so a guess *above* the secret told you to "Go HIGHER" and a guess *below* told you to "Go LOWER" — steering you the wrong way every time.
+  - **Bug 2 — Out-of-range guesses accepted.** `parse_guess` only checked "is this a number?" and never compared the value against the allowed range, so numbers like `200` or `-1` were treated as valid guesses and got a normal direction hint instead of a warning.
+
+- [x] **Fixes I applied.**
+  - Refactored the core logic (`check_guess`, `parse_guess`, `update_score`, `get_range_for_difficulty`) out of `app.py` into `logic_utils.py` so it can be unit-tested without launching Streamlit.
+  - Fixed Bug 1 by swapping the hint logic so a guess above the secret returns `"Too High"` (Go LOWER) and below returns `"Too Low"` (Go HIGHER). `check_guess` now returns just the outcome string; the UI hint text lives in `HINT_MESSAGES` in `app.py`.
+  - Fixed Bug 2 by threading the active difficulty's `low`/`high` into `parse_guess(raw, low, high)` and rejecting anything outside the band — instead of hardcoding `1–100`, which would have wrongly accepted `50` on Easy (1–20).
+  - Added regression tests in `tests/test_game_logic.py` for both bugs and confirmed the full suite passes (6 tests).
 
 ## 📸 Demo Walkthrough
 
-Describe your fixed game in numbered steps so a reader can follow along without watching a video:
+A text-based playthrough of the **fixed** game so a reader can follow the end-to-end behavior without running it. Sample game: **Normal** difficulty (range **1–100**), secret number **63**, starting score **0**.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. The player starts a Normal game. The app shows the range (1–100) and the attempts allowed, and the score begins at 0.
+2. **Guess `75`** → 75 is above the secret (63), so the game correctly returns **"Too High" → 📉 Go LOWER!** (Bug 1 fixed — the hint points the right way). Score updates to **5**.
+3. **Guess `60`** → 60 is below the secret, so the game returns **"Too Low" → 📈 Go HIGHER!**. Score updates to **0**.
+4. **Guess `150`** → out of range, so the game rejects it with **"Out of range. Pick a number between 1 and 100."** instead of giving a direction hint (Bug 2 fixed). The score is unchanged.
+5. **Guess `63`** → matches the secret, so the game returns **"🎉 Correct!"**, awards the win points (final score **40**), shows the balloons, and ends the round with a "You won! The secret was 63" message.
+6. Switching to **Easy** difficulty (range 1–20) and entering `50` is now also rejected as out of range — confirming the fix respects each difficulty's band, not a hardcoded 1–100.
 
 **Screenshot** *(optional)*: <!-- Insert a screenshot of your fixed, winning game here -->
 
